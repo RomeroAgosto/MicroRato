@@ -1,0 +1,4 @@
+pcompile microrato.c mr32.c
+sudo chmod a+wr /dev/ttyUSB0
+ldpic32 -w microrato.hex
+pterm
