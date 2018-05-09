@@ -8,6 +8,7 @@ void turnWall(int state);
 void turnCorner(int state);
 int checkCollision();
 
+char cornerFlag=0;
 int baconRotate=0.1;
 int groundSensor;
 int speedL, speedR;
@@ -34,7 +35,7 @@ int main(void){
 
 	    do{
 	    	getBacon();
-	    	while(1) {
+	    	while(!groundSensor) {
 	    		waitTick40ms();                     // Wait for next 40ms tick (sensor provides a new value each 40 ms)
 	    		readAnalogSensors();                // Fill in "analogSensors" structure
 	    		goTo(0);
@@ -61,16 +62,24 @@ int main(void){
 int checkCollision() {
 	waitTick40ms();                    // Wait for next 40ms tick (sensor provides a new value each 40 ms)
  	readAnalogSensors();				// Fill in "analogSensors" structure
- 	if(analogSensors.obstSensFront<20) return 1;
+ 	if(analogSensors.obstSensFront<10) return 1;
  	else return 0;
 
+}
+
+
+void getBacon() {
+	while(!readBeaconSens()) setVel2(-20,20);
+	speedL=0;
+	speedR=0;
+	setVel2(speedL, speedR);
 }
 
 void turnCorner(int state) {
 	waitTick40ms();                     // Wait for next 40ms tick (sensor provides a new value each 40 ms)
 	readAnalogSensors();                // Fill in "analogSensors" structure
 	if(checkCollision()) return;
-	setVel2(40,40);
+	setVel2(50,50);
 	wait(10);
 	waitTick40ms();                     // Wait for next 40ms tick (sensor provides a new value each 40 ms)
 	readAnalogSensors();                // Fill in "analogSensors" structure
@@ -83,19 +92,12 @@ void turnCorner(int state) {
 		}
 	}
 	else {
-		rotateRel_basic(30, -M_PI/2);
+		rotateRel_basic(-30, M_PI/2);
 		if(analogSensors.obstSensFront>30) {
 			setVel2(40,40);
 			wait(15);
 		}
 	}
-}
-
-void getBacon() {
-	while(!readBeaconSens()) setVel2(-20,20);
-	speedL=0;
-	speedR=0;
-	setVel2(speedL, speedR);
 }
 
 void turnWall(int state) {
@@ -121,23 +123,28 @@ void turnWall(int state) {
 	if(state==-1) {
 		while(1) {
 			if(checkCollision()) break;
-			printf("Dist_left=%03d, Dist_center=%03d, Dist_right=%03d, Bat_voltage=%03d\n", 
-		       analogSensors.obstSensLeft,
-		       analogSensors.obstSensFront, 
-		       analogSensors.obstSensRight, 
-		       analogSensors.batteryVoltage);
 			if(analogSensors.obstSensRight>30 && analogSensors.obstSensRight<40) {
-				setVel2(50,10);
+				cornerFlag=0;
+				setVel2(40,10);
 			}
 			else if(analogSensors.obstSensRight<20) {
-				setVel2(10,50);
+				cornerFlag=0;
+				setVel2(10,40);
 			}
 			else if(analogSensors.obstSensRight>40) {
-				turnCorner(1);
-				getBacon();
-				break;
+				if(cornerFlag){
+					turnCorner(1);
+					getBacon();
+					break;
+				}
+				else cornerFlag=1;
+			}
+			else if(analogSensors.obstSensFront<25){
+				cornerFlag=0;
+				rotateRel_basic(-30,M_PI/2);
 			}
 			else {
+				cornerFlag=0;
 				speedL=30;
 				speedR=30;
 				setVel2(speedL, speedR);
@@ -149,23 +156,28 @@ void turnWall(int state) {
 	if(state==1) {
 			while(1) {
 			if(checkCollision()) break;
-			printf("Dist_left=%03d, Dist_center=%03d, Dist_right=%03d, Bat_voltage=%03d\n", 
-		       analogSensors.obstSensLeft,
-		       analogSensors.obstSensFront, 
-		       analogSensors.obstSensRight, 
-		       analogSensors.batteryVoltage);
 			if(analogSensors.obstSensLeft>30 && analogSensors.obstSensLeft<40) {
-				setVel2(30,70);
+				cornerFlag=0;
+				setVel2(10,40);
 			}
 			else if(analogSensors.obstSensLeft<20) {
-				setVel2(70,30);
+				cornerFlag=0;
+				setVel2(40,10);
 			}
 			else if(analogSensors.obstSensLeft>40) {
-				turnCorner(-1);
-				getBacon();
-				break;
+				if(cornerFlag){
+					turnCorner(-1);
+					getBacon();
+					break;
+				}
+				else cornerFlag=1;
+			}
+			else if(analogSensors.obstSensFront<25){
+				cornerFlag=0;
+				rotateRel_basic(30,M_PI/2);
 			}
 			else {
+				cornerFlag=0;
 				speedL=30;
 				speedR=30;
 				setVel2(speedL, speedR);
@@ -197,10 +209,10 @@ void goTo(int state) {
         }
 
         else {
-         	if(dl<25) {
+         	if(analogSensors.obstSensLeft<25) {
          		turnWall(1);
          	}
-         	else if(dr<25) {
+         	else if(analogSensors.obstSensRight<25) {
          		turnWall(-1);
          	}
          	else rotateRel_basic(30, M_PI);
