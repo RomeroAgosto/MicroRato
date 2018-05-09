@@ -7,26 +7,20 @@ void goTo();
 void turnWall(int state);
 void turnCorner(int state);
 int checkCollision();
+void moveOutTheWay(int dist);
 
 char cornerFlag=0;
 int baconRotate=0.1;
 int groundSensor;
-int speedL, speedR;
+double x, y, t;
 
 int main(void){
-    double x, y, t;
 	initPIC32(); //initializa o software do microrato
 	closedLoopControl(true);
-	speedL=0;
-	speedR=0;
-	setVel2(speedL, speedR);
+	setVel2(0, 0);
 	while(1){
 		while(!startButton());
 		wait (1);
-		speedL=0;
-		speedR=0;
-		setVel2(speedL, speedR);
-
       	enableObstSens();
     	waitTick40ms();                     // Wait for next 40ms tick (sensor provides a new value each 40 ms)
 	    readAnalogSensors();                // Fill in "analogSensors" structure
@@ -39,13 +33,12 @@ int main(void){
 	    		waitTick40ms();                     // Wait for next 40ms tick (sensor provides a new value each 40 ms)
 	    		readAnalogSensors();                // Fill in "analogSensors" structure
 	    		goTo(0);
+	    		
 
          		groundSensor = readLineSensors(0);	// Read ground sensor	
 	    	}
 	    	leds(15);
-	    	speedL=0;
-			speedR=0;
-			setVel2(speedL, speedR);
+			setVel2(0, 0);
 			wait(5);
 			waitTick40ms();                    // Wait for next 40ms tick (sensor provides a new value each 40 ms)
          	readAnalogSensors();				// Fill in "analogSensors" structure
@@ -54,6 +47,8 @@ int main(void){
                analogSensors.obstSensFront, 
                analogSensors.obstSensRight, 
                analogSensors.batteryVoltage);
+
+	    	break;
 	    }while(!stopButton());
 	}
 
@@ -70,32 +65,49 @@ int checkCollision() {
 
 void getBacon() {
 	while(!readBeaconSens()) setVel2(-20,20);
-	speedL=0;
-	speedR=0;
-	setVel2(speedL, speedR);
+	setVel2(0, 0);
+}
+
+void moveOutTheWay(int dist) {
+	getRobotPos(&x, &y, &t);
+	double xtmp, ytmp, tmp, pos, xinit, yinit;
+	xinit=x;
+	yinit=y;
+    setVel2(40,40);
+    while(pos<dist-3){
+    	getRobotPos(&x, &y, &t);
+    	xtmp=fabs(xinit-x);
+    	ytmp=fabs(yinit-y);
+		tmp=pow(xtmp,2);
+	    pos=pow(ytmp,2);
+	    pos+=tmp;
+	    pos=sqrt(pos);
+	    pos=fabs(pos);
+    }
+    setVel2(0,0);
+
 }
 
 void turnCorner(int state) {
 	waitTick40ms();                     // Wait for next 40ms tick (sensor provides a new value each 40 ms)
 	readAnalogSensors();                // Fill in "analogSensors" structure
 	if(checkCollision()) return;
-	setVel2(50,50);
-	wait(10);
+	moveOutTheWay(300);
 	waitTick40ms();                     // Wait for next 40ms tick (sensor provides a new value each 40 ms)
 	readAnalogSensors();                // Fill in "analogSensors" structure
 	if(checkCollision()) return;
 	if(state==-1) {
-		rotateRel_basic(30, M_PI/2);
+		setVel2(0,50);
+		wait(7);
+		setVel2(0,0);
 		if(analogSensors.obstSensFront>30) {
-			setVel2(40,40);
-			wait(15);
+			moveOutTheWay(250);
 		}
 	}
 	else {
 		rotateRel_basic(-30, M_PI/2);
 		if(analogSensors.obstSensFront>30) {
-			setVel2(40,40);
-			wait(15);
+			moveOutTheWay(250);
 		}
 	}
 }
@@ -105,20 +117,13 @@ void turnWall(int state) {
 	readAnalogSensors();                // Fill in "analogSensors" structure
 	while(analogSensors.obstSensFront<30){
 		
-		speedL=30*state;
-		speedR=-30*state;
-		setVel2(speedL, speedR);
+		setVel2(30*state, -30*state);
 		waitTick40ms();                     // Wait for next 40ms tick (sensor provides a new value each 40 ms)
 	    readAnalogSensors();                // Fill in "analogSensors" structure
 	}
 
 	waitTick40ms();                    // Wait for next 40ms tick (sensor provides a new value each 40 ms)
  	readAnalogSensors();				// Fill in "analogSensors" structure
-	printf("Dist_left=%03d, Dist_center=%03d, Dist_right=%03d, Bat_voltage=%03d\n", 
-       analogSensors.obstSensLeft,
-       analogSensors.obstSensFront, 
-       analogSensors.obstSensRight, 
-       analogSensors.batteryVoltage);
 
 	if(state==-1) {
 		while(1) {
@@ -137,7 +142,10 @@ void turnWall(int state) {
 					getBacon();
 					break;
 				}
-				else cornerFlag=1;
+				else {
+					cornerFlag=1;
+					delay(500);
+				}
 			}
 			else if(analogSensors.obstSensFront<25){
 				cornerFlag=0;
@@ -145,9 +153,7 @@ void turnWall(int state) {
 			}
 			else {
 				cornerFlag=0;
-				speedL=30;
-				speedR=30;
-				setVel2(speedL, speedR);
+				setVel2(30, 30);
 			}
 		waitTick40ms();                     // Wait for next 40ms tick (sensor provides a new value each 40 ms)
 	    readAnalogSensors();                // Fill in "analogSensors" structure
@@ -178,9 +184,7 @@ void turnWall(int state) {
 			}
 			else {
 				cornerFlag=0;
-				speedL=30;
-				speedR=30;
-				setVel2(speedL, speedR);
+				setVel2(30, 30);
 			}
 		waitTick40ms();                     // Wait for next 40ms tick (sensor provides a new value each 40 ms)
 	    readAnalogSensors();                // Fill in "analogSensors" structure
@@ -201,11 +205,8 @@ void goTo(int state) {
         dl+=tmp;
         dr=sqrt(dr);
         dl=sqrt(dl);
-        printf("%f, %f\n",dr, dl);
         if(dr>=25 && dl>=25) {
-     		speedL=30;
-			speedR=30;
-			setVel2(speedL, speedR);
+			setVel2(30, 30);
         }
 
         else {
