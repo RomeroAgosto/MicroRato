@@ -46,7 +46,7 @@ int main(void){
 	    	leds(15);
 			setVel2(0, 0);
 			volta=1;
-			getBed();
+			rotateRel_basic(20,M_PI);
 			do{
 				goTo();
 				inBed();
@@ -55,12 +55,12 @@ int main(void){
 			while(1) {
 				if(count) {
 					leds(0);
-					delay(700);
+					delay(1400);
 					count++;
 				}
 				else {
 					leds(15);
-					delay(700);
+					delay(1400);
 					count--;
 				}
 			}
@@ -149,23 +149,29 @@ void turnCorner(int state) {
 	if(state==-1) {
 		setVel2(0,50);
 		wait(8);
-		setVel2(0,0);
+		waitTick40ms();                     // Wait for next 40ms tick (sensor provides a new value each 40 ms)
+		readAnalogSensors();                // Fill in "analogSensors" structure
 		if(analogSensors.obstSensFront>30) {
-			moveOutTheWay(270);
+			moveOutTheWay(280);
 		}
+		else return;
 	}
 	else {
-		rotateRel_basic(-20, M_PI/2);
+		setVel2(50,0);
+		wait(8);
+		waitTick40ms();                     // Wait for next 40ms tick (sensor provides a new value each 40 ms)
+		readAnalogSensors(); 
 		if(analogSensors.obstSensFront>30) {
-			moveOutTheWay(270);
+			moveOutTheWay(280);
 		}
+		else return;
 	}
 }
 
 void turnWall(int state) {
 	waitTick40ms();                     // Wait for next 40ms tick (sensor provides a new value each 40 ms)
 	readAnalogSensors();                // Fill in "analogSensors" structure
-	while(analogSensors.obstSensFront<30){
+	while(analogSensors.obstSensFront<25){
 		
 		setVel2(40*state, -40*state);
 		waitTick40ms();                     // Wait for next 40ms tick (sensor provides a new value each 40 ms)
@@ -178,15 +184,15 @@ void turnWall(int state) {
 	if(state==-1) {
 		while(1) {
 			if(checkCollision()) break;
-			if(analogSensors.obstSensRight>25 && analogSensors.obstSensRight<50) {
+			if(analogSensors.obstSensRight>30 && analogSensors.obstSensRight<50) {
 				cornerFlag=-1;
 				flagTurn=0;
-				setVel2(40,20);
+				setVel2(50,20);
 			}
-			else if(analogSensors.obstSensRight<20) {
+			else if(analogSensors.obstSensRight<25) {
 				flagTurn=1;
 				cornerFlag=0;
-				setVel2(20,40);
+				setVel2(20,50);
 			}
 			else if(analogSensors.obstSensRight>55) {
 				if(cornerFlag){
@@ -201,18 +207,17 @@ void turnWall(int state) {
 					cornerFlag=1;
 				}
 			}
-			else if(analogSensors.obstSensFront<25){
-				cornerFlag=0;
-				setVel2(-20,20);
-				delay(350);
-				if(volta) {
-					inBed();
-					break;
-				}
-			}
 			else {
 				cornerFlag=0;
-				setVel2(40, 40);
+				setVel2(50, 50);
+			}
+			if(analogSensors.obstSensFront<25){
+				cornerFlag=0;
+				setVel2(-25,25);
+				delay(550);
+				if(volta) {
+					inBed(); if(timeToEat) return;
+				}
 			}
 		waitTick40ms();                     // Wait for next 40ms tick (sensor provides a new value each 40 ms)
 	    readAnalogSensors();                // Fill in "analogSensors" structure
@@ -224,12 +229,12 @@ void turnWall(int state) {
 			if(analogSensors.obstSensLeft>25 && analogSensors.obstSensLeft<50) {
 				flagTurn=0;
 				cornerFlag=0;
-				setVel2(20,40);
+				setVel2(20,50);
 			}
 			else if(analogSensors.obstSensLeft<20) {
 				flagTurn=1;
 				cornerFlag=0;
-				setVel2(40,20);
+				setVel2(50,20);
 			}
 			else if(analogSensors.obstSensLeft>50) {
 				if(cornerFlag){
@@ -244,18 +249,17 @@ void turnWall(int state) {
 					cornerFlag=1;
 				}
 			}
-			else if(analogSensors.obstSensFront<25){
-				cornerFlag=0;
-				setVel2(20,-20);
-				delay(350);
-				if(volta) {
-					inBed();
-					break;
-				}
-			}
 			else {
 				cornerFlag=0;
-				setVel2(40, 40);
+				setVel2(50, 50);
+			}
+			if(analogSensors.obstSensFront<25){
+				cornerFlag=0;
+				setVel2(25,-25);
+				delay(550);
+				if(volta) {
+					inBed(); if(timeToEat) return;
+				}
 			}
 		waitTick40ms();                     // Wait for next 40ms tick (sensor provides a new value each 40 ms)
 	    readAnalogSensors();                // Fill in "analogSensors" structure
@@ -283,7 +287,7 @@ void goTo() {
                dr,
                dl);*/
     if(dr>=30 && dl>=30) {
-		setVel2(40, 40);
+		setVel2(50, 50);
     }
 
     else {
