@@ -118,6 +118,7 @@ volatile bool tick20ms;
 volatile bool tick40ms;
 volatile bool tick80ms;
 volatile bool tick160ms;
+volatile bool tick2s;
 
 MR32_analogSensors analogSensors;
 volatile static int counterLeft;
@@ -743,9 +744,9 @@ void updateLocalization(int encLeft, int encRight)
 // ****************************************************************************
 // Interrupt Service routine - Timer2
 // (called every 10 ms)
+volatile int cntT2Ticks = 0;
 void _int_(_TIMER_2_VECTOR) isr_t2(void)
 {
-   static int cntT2Ticks = 0;
    static int encLeft, encRight;
    static int encLeftAcc=0, encRightAcc=0;
 
